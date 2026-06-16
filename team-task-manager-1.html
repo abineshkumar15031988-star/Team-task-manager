@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Team Task Manager</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;font-family:Inter,Segoe UI,sans-serif}
+body{background:#F0F4FF;min-height:100vh}
+input,select,textarea{font-family:inherit;font-size:14px;color:#1e293b;background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:8px;padding:9px 12px;width:100%;outline:none;margin-bottom:12px;box-sizing:border-box}
+input:focus,select:focus,textarea:focus{border-color:#1e40af}
+label.lbl{display:block;font-size:11px;font-weight:700;color:#64748b;margin-bottom:4px;letter-spacing:.05em;text-transform:uppercase}
+button{cursor:pointer;font-family:inherit;font-size:14px;font-weight:600;border-radius:8px;border:none;padding:9px 18px}
+.btn-pri{background:#1e40af;color:#fff}
+.btn-sec{background:#fff;color:#475569;border:1.5px solid #e2e8f0!important}
+.btn-pri:hover{background:#1d3fa0}.btn-sec:hover{background:#f8fafc}
+.btn-sm{padding:5px 9px;font-size:12px;border-radius:6px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{padding:12px 13px;text-align:left;font-weight:700;font-size:11px;letter-spacing:.05em;text-transform:uppercase;white-space:nowrap;border-right:1px solid rgba(255,255,255,.15);color:#fff;background:#1e40af}
+th:last-child{border-right:none}
+td{padding:11px 13px;border-bottom:1px solid #e2e8f0;vertical-align:top;color:#374151}
+tr:nth-child(even) td{background:#f8fafc}
+tr:nth-child(odd) td{background:#fff}
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:200;align-items:center;justify-content:center;padding:16px;overflow-y:auto}
+.modal-bg.open{display:flex}
+.modal{background:#fff;border-radius:16px;padding:28px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.2);max-height:90vh;overflow-y:auto}
+.toast-wrap{position:fixed;bottom:24px;right:24px;z-index:999;display:flex;flex-direction:column;gap:8px}
+.toast{color:#fff;border-radius:10px;padding:12px 18px;font-size:13px;box-shadow:0 4px 16px rgba(0,0,0,.2);max-width:300px;display:flex;gap:8px;align-items:center;animation:fadeIn .3s}
+@keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.toast.success{background:#065F46}.toast.error{background:#7f1d1d}.toast.info{background:#1e3a5f}
+.badge{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:999px;font-size:11px;font-weight:700}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.grid2-sm{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.tab-btn{padding:8px 16px;border:none;border-radius:6px 6px 0 0;cursor:pointer;font-weight:600;font-size:13px;background:transparent;color:#64748b}
+.tab-btn.active{background:#1e40af;color:#fff}
+.tabs{display:flex;gap:4px;border-bottom:2px solid #e2e8f0;margin-bottom:20px}
+.progress-line{position:absolute;left:15px;top:0;bottom:0;width:2px;background:#e2e8f0}
+.progress-dot{width:30px;height:30px;border-radius:50%;background:#1e40af;color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;z-index:1;border:2px solid #fff;box-shadow:0 0 0 2px #1e40af}
+.drag-zone{border:2px dashed #cbd5e1;border-radius:10px;padding:16px;text-align:center;cursor:pointer;background:#f8fafc;transition:all .2s}
+.drag-zone:hover,.drag-zone.dragover{border-color:#1e40af;background:#eff6ff}
+.filter-btn{padding:7px 16px;border-radius:999px;border:none;cursor:pointer;font-size:13px;font-weight:600;background:#e2e8f0;color:#475569}
+.filter-btn.active{background:#1e40af;color:#fff}
+.pri-btn{flex:1;padding:8px;border:2px solid #e2e8f0;border-radius:8px;cursor:pointer;font-weight:700;font-size:13px;background:#f8fafc;color:#64748b}
+.pri-btn.sel-high{border-color:#ef4444;background:#fef2f2;color:#b91c1c}
+.pri-btn.sel-medium{border-color:#f59e0b;background:#fffbeb;color:#b45309}
+.pri-btn.sel-low{border-color:#22c55e;background:#f0fdf4;color:#166534}
+@media(max-width:600px){.grid2,.grid2-sm{grid-template-columns:1fr}th,td{padding:8px}table{font-size:12px}}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div id="header" style="background:linear-gradient(135deg,#1e40af,#3b82f6);padding:24px;color:#fff">
+  <div style="max-width:1300px;margin:0 auto">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+      <div>
+        <h1 style="font-size:24px;font-weight:800">📋 Team Task Manager</h1>
+        <p style="margin-top:4px;opacity:.8;font-size:13px">Progress tracking · Priority · File uploads · Gmail notifications · Working days only</p>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button onclick="exportCSV()" style="background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.3);border-radius:8px;padding:9px 16px;font-size:14px;font-weight:600">📥 Export CSV</button>
+        <button onclick="openSettings()" style="background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.3);border-radius:8px;padding:9px 16px;font-size:14px;font-weight:600">⚙️ Settings</button>
+        <button onclick="openAssign()" class="btn-pri" style="background:#fff;color:#1e40af;font-weight:700">+ Assign Task</button>
+      </div>
+    </div>
+    <div id="stats" style="display:flex;gap:12px;margin-top:16px;flex-wrap:wrap"></div>
+  </div>
+</div>
+
+<!-- BODY -->
+<div style="max-width:1300px;margin:0 auto;padding:20px 16px">
+  <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:10px 16px;font-size:12.5px;color:#92400e;margin-bottom:16px">
+    📅 Working days only — Sundays, 2nd and 4th Saturdays are excluded from due dates and overdue checks.
+  </div>
+  <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;align-items:center">
+    <button class="filter-btn active" onclick="setFilter('All',this)">All</button>
+    <button class="filter-btn" onclick="setFilter('Pending',this)">Pending</button>
+    <button class="filter-btn" onclick="setFilter('Completed',this)">Completed</button>
+    <input id="searchInput" placeholder="Search task, owner or assigner..." oninput="renderTable()" style="max-width:260px;margin:0;padding:8px 14px;margin-bottom:0;width:auto"/>
+  </div>
+  <div style="background:#fff;border-radius:14px;box-shadow:0 1px 6px rgba(0,0,0,.07);overflow:auto">
+    <table>
+      <thead><tr>
+        <th>S.No</th><th>Task</th><th>Priority</th><th>Assigner</th><th>Owner</th>
+        <th>Assigned Date</th><th>Due Date</th><th>Progress</th><th>Files</th><th>Status</th><th>Action</th>
+      </tr></thead>
+      <tbody id="taskBody"></tbody>
+    </table>
+    <div id="emptyMsg" style="display:none;text-align:center;padding:60px 20px;color:#94a3b8">
+      <div style="font-size:36px;margin-bottom:12px">📭</div><p>No tasks found. Click Assign Task to get started!</p>
+    </div>
+  </div>
+</div>
+
+<!-- ASSIGN MODAL -->
+<div class="modal-bg" id="assignModal">
+  <div class="modal" style="max-width:580px">
+    <h2 style="font-size:20px;color:#1e293b;font-weight:700;margin-bottom:4px">Assign New Task</h2>
+    <p style="font-size:13px;color:#64748b;margin-bottom:20px">Email notification sent to owner on assignment</p>
+    <label class="lbl">Task Description</label>
+    <textarea id="a_task" rows="3" placeholder="Describe the task..." style="resize:vertical"></textarea>
+    <label class="lbl">Priority</label>
+    <div style="display:flex;gap:8px;margin-bottom:14px">
+      <button class="pri-btn" id="pri_High" onclick="setPriority('High')">🔴 High</button>
+      <button class="pri-btn sel-medium" id="pri_Medium" onclick="setPriority('Medium')">🟡 Medium</button>
+      <button class="pri-btn" id="pri_Low" onclick="setPriority('Low')">🟢 Low</button>
+    </div>
+    <div class="grid2">
+      <div>
+        <div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:7px 12px;margin-bottom:10px;font-size:11px;color:#0369a1;font-weight:700;text-transform:uppercase;letter-spacing:.05em">Assigner — gives the task</div>
+        <label class="lbl">Name</label>
+        <select id="a_assignerName" onchange="fillEmail('assigner')"></select>
+        <label class="lbl">Email</label>
+        <input type="email" id="a_assignerEmail" placeholder="assigner@company.com"/>
+      </div>
+      <div>
+        <div style="background:#fdf4ff;border:1px solid #e9d5ff;border-radius:8px;padding:7px 12px;margin-bottom:10px;font-size:11px;color:#7e22ce;font-weight:700;text-transform:uppercase;letter-spacing:.05em">Owner — does the task</div>
+        <label class="lbl">Name</label>
+        <select id="a_ownerName" onchange="fillEmail('owner')"></select>
+        <label class="lbl">Email</label>
+        <input type="email" id="a_ownerEmail" placeholder="owner@company.com"/>
+      </div>
+    </div>
+    <div class="grid2-sm">
+      <div><label class="lbl">Date Assigned</label><input type="date" id="a_assignedDate"/></div>
+      <div><label class="lbl">Working Days to Complete</label><input type="number" id="a_workingDays" min="1" max="365" placeholder="e.g. 5" oninput="showDuePreview()"/></div>
+    </div>
+    <div id="duePreview" style="display:none;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:13px;color:#1e40af"></div>
+    <label class="lbl">Attach Files (optional)</label>
+    <div class="drag-zone" id="dropZone" onclick="document.getElementById('fileInput').click()" ondragover="handleDragOver(event)" ondragleave="handleDragLeave()" ondrop="handleDrop(event)">
+      <div style="font-size:24px;margin-bottom:4px">📎</div>
+      <div style="font-size:13px;color:#64748b"><strong style="color:#1e40af">Click to upload</strong> or drag and drop</div>
+      <div style="font-size:11px;color:#94a3b8;margin-top:4px">PDF, Word, Excel, Images, etc.</div>
+    </div>
+    <input type="file" id="fileInput" multiple style="display:none" onchange="handleFileSelect(event)"/>
+    <div id="fileList" style="display:flex;flex-direction:column;gap:6px;margin-top:8px"></div>
+    <p id="assignError" style="color:#dc2626;font-size:13px;margin:8px 0 0;display:none"></p>
+    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:16px">
+      <button class="btn-sec" onclick="closeModal('assignModal')">Cancel</button>
+      <button class="btn-pri" onclick="saveTask()">Assign and Notify</button>
+    </div>
+  </div>
+</div>
+
+<!-- COMPLETE MODAL -->
+<div class="modal-bg" id="completeModal">
+  <div class="modal" style="max-width:360px">
+    <h2 style="font-size:18px;color:#1e293b;font-weight:700;margin-bottom:8px">Mark as Completed</h2>
+    <p id="c_taskName" style="color:#64748b;font-size:14px;margin-bottom:16px"></p>
+    <label class="lbl">Date Completed</label>
+    <input type="date" id="c_date" onchange="checkHoliday('c_date','c_holidayWarn')"/>
+    <p id="c_holidayWarn" style="color:#b45309;font-size:12px;margin:-8px 0 8px;display:none">⚠️ This is a non-working day.</p>
+    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:16px">
+      <button class="btn-sec" onclick="closeModal('completeModal')">Cancel</button>
+      <button class="btn-pri" style="background:#059669" onclick="confirmComplete()">Confirm and Notify</button>
+    </div>
+  </div>
+</div>
+
+<!-- PROGRESS MODAL -->
+<div class="modal-bg" id="progressModal">
+  <div class="modal" style="max-width:560px">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px">
+      <h2 style="font-size:18px;color:#1e293b;font-weight:700">Work Progress</h2>
+      <button onclick="closeModal('progressModal')" style="background:none;border:none;font-size:20px;color:#94a3b8;line-height:1;cursor:pointer">✕</button>
+    </div>
+    <p id="p_taskName" style="font-size:13px;color:#64748b;margin-bottom:16px"></p>
+    <div style="margin-bottom:20px">
+      <div style="display:flex;justify-content:space-between;font-size:12px;color:#64748b;margin-bottom:6px">
+        <span>Progress</span><span id="p_pct" style="font-weight:700;color:#1e40af"></span>
+      </div>
+      <div style="background:#e2e8f0;border-radius:999px;height:8px;overflow:hidden">
+        <div id="p_bar" style="height:100%;border-radius:999px;transition:width .4s;background:#3b82f6"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:11px;color:#94a3b8;margin-top:4px">
+        <span id="p_stepCount"></span><span id="p_status"></span>
+      </div>
+    </div>
+    <div id="p_timeline" style="margin-bottom:16px"></div>
+    <div id="p_addForm" style="background:#f0f9ff;border-radius:12px;padding:16px;border:1px solid #bae6fd">
+      <div style="font-size:12px;font-weight:700;color:#0369a1;text-transform:uppercase;letter-spacing:.05em;margin-bottom:12px">+ Log Work Done</div>
+      <label class="lbl">Date</label>
+      <input type="date" id="p_date"/>
+      <label class="lbl">What was done?</label>
+      <textarea id="p_comment" rows="3" placeholder="Describe what was completed in this step..." style="resize:vertical"></textarea>
+      <p id="p_error" style="color:#dc2626;font-size:12px;margin:-8px 0 8px;display:none"></p>
+      <button class="btn-pri" onclick="addProgress()" style="width:100%">Add Progress Entry</button>
+    </div>
+  </div>
+</div>
+
+<!-- FILES MODAL -->
+<div class="modal-bg" id="filesModal">
+  <div class="modal" style="max-width:460px">
+    <h2 style="font-size:18px;color:#1e293b;font-weight:700;margin-bottom:4px">Attached Files</h2>
+    <p id="f_taskName" style="font-size:13px;color:#64748b;margin-bottom:20px"></p>
+    <div id="f_list"></div>
+    <div style="margin-top:20px;text-align:right">
+      <button class="btn-sec" onclick="closeModal('filesModal')">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- SETTINGS MODAL -->
+<div class="modal-bg" id="settingsModal">
+  <div class="modal" style="max-width:500px">
+    <h2 style="font-size:20px;color:#1e293b;font-weight:700;margin-bottom:16px">⚙️ Settings</h2>
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab('general',this)">Manager Info</button>
+      <button class="tab-btn" onclick="switchTab('members',this)">Team Members</button>
+    </div>
+    <div id="tab_general">
+      <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:12px;margin-bottom:16px;font-size:13px;color:#166534">✅ Gmail connected — emails send directly from your Gmail.</div>
+      <label class="lbl">Your Name (Manager)</label>
+      <input id="s_managerName" placeholder="e.g. Ravi Kumar"/>
+      <label class="lbl">Your Email (CC on all notifications)</label>
+      <input type="email" id="s_managerEmail" placeholder="you@gmail.com"/>
+    </div>
+    <div id="tab_members" style="display:none">
+      <p style="font-size:13px;color:#64748b;margin-bottom:12px">Email auto-fills when assigning tasks.</p>
+      <div id="membersList"></div>
+      <button class="btn-sec" onclick="addMemberRow()" style="width:100%;margin-top:6px">+ Add Member</button>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:24px;justify-content:flex-end">
+      <button class="btn-sec" onclick="closeModal('settingsModal')">Cancel</button>
+      <button class="btn-pri" onclick="saveSettings()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast-wrap" id="toastWrap"></div>
+
+<script>
+// ── State ────────────────────────────────────────────────────────────────────
+let tasks = [
+  {id:1,task:"Prepare Q2 Sales Report",priority:"High",assigner:"David",assignerEmail:"david@example.com",owner:"Alice",ownerEmail:"alice@example.com",assignedDate:"2026-06-01",dueDate:"2026-06-10",status:"Completed",completedDateVal:"2026-06-09",files:[],progress:[{id:1,date:"2026-06-03",comment:"Collected data from all regions"},{id:2,date:"2026-06-07",comment:"Draft prepared and shared for review"}]},
+  {id:2,task:"Update Website Homepage",priority:"Medium",assigner:"David",assignerEmail:"david@example.com",owner:"Bob",ownerEmail:"bob@example.com",assignedDate:"2026-06-05",dueDate:"2026-06-19",status:"Pending",completedDateVal:"",files:[],progress:[{id:1,date:"2026-06-06",comment:"Wireframes done, starting design"}]},
+  {id:3,task:"Client Follow-up Emails",priority:"Low",assigner:"David",assignerEmail:"david@example.com",owner:"Carol",ownerEmail:"carol@example.com",assignedDate:"2026-06-08",dueDate:"2026-06-12",status:"Pending",completedDateVal:"",files:[],progress:[]},
+];
+let members = [
+  {name:"Alice",email:"alice@example.com"},
+  {name:"Bob",email:"bob@example.com"},
+  {name:"Carol",email:"carol@example.com"},
+  {name:"David",email:"david@example.com"},
+];
+let settings = {managerName:"Manager",managerEmail:""};
+let nextId = 4, nextProgressId = 10;
+let currentFilter = "All";
+let currentPriority = "Medium";
+let pendingFiles = [];
+let activeCompleteId = null;
+let activeProgressId = null;
+
+// ── Working day helpers ───────────────────────────────────────────────────────
+function isHoliday(d) {
+  if(typeof d==="string") d=new Date(d+"T00:00:00");
+  const day=d.getDay();
+  if(day===0) return true;
+  if(day===6){const n=Math.ceil(d.getDate()/7);return n===2||n===4;}
+  return false;
+}
+function addWorkingDays(dateStr,n){
+  const d=new Date(dateStr+"T00:00:00");let added=0;
+  while(added<n){d.setDate(d.getDate()+1);if(!isHoliday(d))added++;}
+  return d.toISOString().split("T")[0];
+}
+function nextWorkingDay(dateStr){
+  const d=new Date(dateStr+"T00:00:00");
+  while(isHoliday(d))d.setDate(d.getDate()+1);
+  return d.toISOString().split("T")[0];
+}
+function workingDaysBetween(s,e){
+  const start=new Date(s+"T00:00:00"),end=new Date(e+"T00:00:00");
+  let count=0;const cur=new Date(start);const sign=end>=start?1:-1;
+  while(sign===1?cur<=end:cur>=end){if(!isHoliday(cur))count++;cur.setDate(cur.getDate()+sign);}
+  return sign===1?count:-count;
+}
+const today = nextWorkingDay(new Date().toISOString().split("T")[0]);
+
+function formatSize(b){if(b<1024)return b+" B";if(b<1048576)return(b/1024).toFixed(1)+" KB";return(b/1048576).toFixed(1)+" MB";}
+
+// ── Gmail send ────────────────────────────────────────────────────────────────
+async function sendGmail(toEmail,toName,subject,body){
+  if(!toEmail){showToast("No email for "+toName,"error");return;}
+  showToast("Sending email to "+toName+"...","info");
+  try{
+    const prompt="Send an email:\nTo: "+toEmail+"\n"+(settings.managerEmail?"CC: "+settings.managerEmail+"\n":"")+"Subject: "+subject+"\nBody:\n"+body+"\n\nSend now using Gmail MCP.";
+    const res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:1000,messages:[{role:"user",content:prompt}],mcp_servers:[{type:"url",url:"https://gmailmcp.googleapis.com/mcp/v1",name:"gmail-mcp"}]})});
+    const data=await res.json();
+    const text=data.content?.find(b=>b.type==="text")?.text||"";
+    if(!res.ok||text.toLowerCase().includes("error"))showToast("Email failed — check Gmail connection","error");
+    else showToast("Email sent to "+toName+" ✓","success");
+  }catch(e){showToast("Email error: "+e.message,"error");}
+}
+
+// ── Toast ─────────────────────────────────────────────────────────────────────
+function showToast(msg,type){
+  const d=document.createElement("div");
+  d.className="toast "+(type||"info");
+  d.innerHTML=(type==="success"?"✅":type==="error"?"❌":"📧")+" <span>"+msg+"</span>";
+  document.getElementById("toastWrap").appendChild(d);
+  setTimeout(()=>d.remove(),5000);
+}
+
+// ── Modal helpers ─────────────────────────────────────────────────────────────
+function openModal(id){document.getElementById(id).classList.add("open");}
+function closeModal(id){document.getElementById(id).classList.remove("open");}
+
+// ── Render ────────────────────────────────────────────────────────────────────
+function getFiltered(){
+  const q=document.getElementById("searchInput").value.toLowerCase();
+  return tasks.filter(t=>{
+    const mf=currentFilter==="All"||t.status===currentFilter;
+    const ms=[t.task,t.owner,t.assigner].some(v=>v.toLowerCase().includes(q));
+    return mf&&ms;
+  });
+}
+function setFilter(f,btn){
+  currentFilter=f;
+  document.querySelectorAll(".filter-btn").forEach(b=>b.classList.remove("active"));
+  btn.classList.add("active");
+  renderTable();
+}
+function priColor(p){return p==="High"?"#ef4444":p==="Low"?"#22c55e":"#f59e0b";}
+function priBadge(p){
+  const map={High:{bg:"#fee2e2",c:"#b91c1c",b:"#fca5a5",dot:"#ef4444"},Medium:{bg:"#fef3c7",c:"#b45309",b:"#fcd34d",dot:"#f59e0b"},Low:{bg:"#dcfce7",c:"#166534",b:"#86efac",dot:"#22c55e"}};
+  const s=map[p]||map.Medium;
+  return `<span class="badge" style="background:${s.bg};color:${s.c};border:1px solid ${s.b}"><span style="width:6px;height:6px;border-radius:50%;background:${s.dot};display:inline-block"></span>${p}</span>`;
+}
+function statusBadge(s){
+  const p=s==="Pending";
+  return `<span class="badge" style="background:${p?"#FEF3C7":"#D1FAE5"};color:${p?"#B45309":"#065F46"};border:1px solid ${p?"#FCD34D":"#6EE7B7"}">${p?"Pending":"Completed"}</span>`;
+}
+function renderTable(){
+  const filtered=getFiltered();
+  const body=document.getElementById("taskBody");
+  const empty=document.getElementById("emptyMsg");
+  // stats
+  const all=tasks.length,pend=tasks.filter(t=>t.status==="Pending").length,comp=tasks.filter(t=>t.status==="Completed").length;
+  document.getElementById("stats").innerHTML=
+    `<div style="background:rgba(255,255,255,.15);border-radius:10px;padding:10px 18px"><div style="font-size:22px;font-weight:800">${all}</div><div style="font-size:12px;opacity:.85">Total</div></div>`+
+    `<div style="background:rgba(255,255,255,.15);border-radius:10px;padding:10px 18px"><div style="font-size:22px;font-weight:800">${pend}</div><div style="font-size:12px;opacity:.85">Pending</div></div>`+
+    `<div style="background:rgba(255,255,255,.15);border-radius:10px;padding:10px 18px"><div style="font-size:22px;font-weight:800">${comp}</div><div style="font-size:12px;opacity:.85">Completed</div></div>`;
+  // update filter counts
+  document.querySelectorAll(".filter-btn").forEach(b=>{
+    const f=b.textContent.replace(/\s*\(.*\)/,"").trim();
+    const cnt=f==="All"?all:f==="Pending"?pend:comp;
+    b.textContent=f+" ("+cnt+")";
+    if(b.classList.contains("active"))b.classList.add("active");
+  });
+
+  if(filtered.length===0){body.innerHTML="";empty.style.display="block";return;}
+  empty.style.display="none";
+  body.innerHTML=filtered.map((t,idx)=>{
+    const isOver=t.status==="Pending"&&t.dueDate&&today>t.dueDate;
+    const diff=t.status==="Pending"&&t.dueDate?workingDaysBetween(today,t.dueDate):null;
+    const lc=t.status==="Completed"?"#10b981":isOver?"#ef4444":priColor(t.priority||"Medium");
+    const steps=(t.progress||[]).length;
+    const lastStep=steps>0?t.progress[steps-1].date:"";
+    const diffHtml=diff!==null?`<div style="font-size:11px;margin-top:2px;font-weight:600;color:${isOver?"#dc2626":diff<=2?"#d97706":"#059669"}">${isOver?Math.abs(diff)+"d overdue":diff+"d left"}</div>`:"";
+    const overdueBadge=isOver?`<span style="font-size:11px;background:#fee2e2;color:#b91c1c;padding:2px 5px;border-radius:4px;font-weight:700;display:inline-block">OVERDUE</span>`:"";
+    const doneDate=t.status==="Completed"&&t.completedDateVal?`<span style="font-size:11px;color:#059669">Done: ${t.completedDateVal}</span>`:"";
+    const remindBtn=t.status==="Pending"?`<button class="btn-sm" onclick="sendReminder(${t.id})" style="background:${isOver?"#fef3c7":"#f1f5f9"};color:${isOver?"#b45309":"#64748b"};border:1px solid ${isOver?"#fcd34d":"#e2e8f0"}">${isOver?"Remind!":"Remind"}</button>`:"";
+    const doneBtn=t.status==="Pending"?`<button class="btn-sm" onclick="openComplete(${t.id})" style="background:#d1fae5;color:#065f46;border:1px solid #6ee7b7">Done</button>`:"";
+    const filesBtn=t.files&&t.files.length>0?`<button class="btn-sm" onclick="openFiles(${t.id})" style="background:#eff6ff;color:#1e40af;border:1px solid #bfdbfe">📎 ${t.files.length}</button>`:`<span style="color:#cbd5e1;font-size:12px">—</span>`;
+    return `<tr style="border-left:4px solid ${lc}">
+      <td style="font-weight:700;color:#94a3b8;width:36px">${idx+1}</td>
+      <td style="font-weight:600;color:#1e293b;max-width:160px">${t.task}</td>
+      <td>${priBadge(t.priority||"Medium")}</td>
+      <td><div style="font-weight:600;color:#0369a1">${t.assigner}</div><div style="font-size:11px;color:#94a3b8">${t.assignerEmail}</div></td>
+      <td><div style="font-weight:600;color:#7e22ce">${t.owner}</div><div style="font-size:11px;color:#94a3b8">${t.ownerEmail}</div></td>
+      <td style="color:#475569;white-space:nowrap">${t.assignedDate}</td>
+      <td><div style="color:${isOver?"#dc2626":"#1e293b"};font-weight:${isOver?700:400}">${t.dueDate||"—"}</div>${diffHtml}</td>
+      <td><button class="btn-sm" onclick="openProgress(${t.id})" style="background:${steps>0?"#eff6ff":"#f8fafc"};color:${steps>0?"#1e40af":"#94a3b8"};border:1px solid ${steps>0?"#bfdbfe":"#e2e8f0"}">📋 ${steps} step${steps!==1?"s":""}</button>${lastStep?`<div style="font-size:11px;color:#64748b;margin-top:4px">Last: ${lastStep}</div>`:""}</td>
+      <td style="text-align:center">${filesBtn}</td>
+      <td><div style="display:flex;flex-direction:column;gap:4px">${statusBadge(t.status)}${doneDate}${overdueBadge}</div></td>
+      <td><div style="display:flex;gap:4px;flex-wrap:wrap">${remindBtn}${doneBtn}<button class="btn-sm" onclick="deleteTask(${t.id})" style="background:#fee2e2;color:#b91c1c;border:1px solid #fca5a5">Del</button></div></td>
+    </tr>`;
+  }).join("");
+}
+
+// ── Assign ────────────────────────────────────────────────────────────────────
+function populateMemberSelects(){
+  ["a_assignerName","a_ownerName"].forEach(id=>{
+    const sel=document.getElementById(id);
+    sel.innerHTML=members.map(m=>`<option value="${m.name}">${m.name}</option>`).join("");
+  });
+  document.getElementById("a_assignerName").value=members[0]?.name||"";
+  document.getElementById("a_ownerName").value=members[1]?.name||members[0]?.name||"";
+  fillEmail("assigner");fillEmail("owner");
+}
+function fillEmail(role){
+  const name=document.getElementById("a_"+role+"Name").value;
+  const found=members.find(m=>m.name===name);
+  document.getElementById("a_"+role+"Email").value=found?found.email:"";
+}
+function setPriority(p){
+  currentPriority=p;
+  ["High","Medium","Low"].forEach(x=>{
+    const btn=document.getElementById("pri_"+x);
+    btn.className="pri-btn"+(x===p?" sel-"+x.toLowerCase():"");
+  });
+}
+function showDuePreview(){
+  const d=document.getElementById("a_assignedDate").value;
+  const n=parseInt(document.getElementById("a_workingDays").value);
+  const div=document.getElementById("duePreview");
+  if(d&&n>0){div.style.display="block";div.innerHTML="Due date (working days only): <strong>"+addWorkingDays(d,n)+"</strong>";}
+  else div.style.display="none";
+}
+function openAssign(){
+  pendingFiles=[];currentPriority="Medium";
+  setPriority("Medium");
+  populateMemberSelects();
+  document.getElementById("a_task").value="";
+  document.getElementById("a_assignedDate").value=today;
+  document.getElementById("a_workingDays").value="";
+  document.getElementById("duePreview").style.display="none";
+  document.getElementById("fileList").innerHTML="";
+  document.getElementById("assignError").style.display="none";
+  openModal("assignModal");
+}
+function handleDragOver(e){e.preventDefault();document.getElementById("dropZone").classList.add("dragover");}
+function handleDragLeave(){document.getElementById("dropZone").classList.remove("dragover");}
+function handleDrop(e){e.preventDefault();handleDragLeave();addFiles(e.dataTransfer.files);}
+function handleFileSelect(e){addFiles(e.target.files);}
+function addFiles(files){
+  Array.from(files).forEach(f=>{
+    pendingFiles.push({name:f.name,size:f.size,type:f.type,url:URL.createObjectURL(f)});
+  });
+  renderFileList();
+}
+function renderFileList(){
+  document.getElementById("fileList").innerHTML=pendingFiles.map((f,i)=>
+    `<div style="display:flex;align-items:center;gap:10px;padding:7px 12px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;margin-top:6px">
+      <span>${f.type.startsWith("image/")?"🖼":f.type==="application/pdf"?"📄":"📎"}</span>
+      <span style="flex:1;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${f.name}</span>
+      <span style="font-size:11px;color:#64748b">${formatSize(f.size)}</span>
+      <button onclick="removeFile(${i})" style="background:none;border:none;color:#ef4444;cursor:pointer;font-size:14px">✕</button>
+    </div>`
+  ).join("");
+}
+function removeFile(i){pendingFiles.splice(i,1);renderFileList();}
+
+async function saveTask(){
+  const task=document.getElementById("a_task").value.trim();
+  const assigner=document.getElementById("a_assignerName").value;
+  const assignerEmail=document.getElementById("a_assignerEmail").value.trim();
+  const owner=document.getElementById("a_ownerName").value;
+  const ownerEmail=document.getElementById("a_ownerEmail").value.trim();
+  const assignedDate=document.getElementById("a_assignedDate").value;
+  const wd=parseInt(document.getElementById("a_workingDays").value);
+  const errEl=document.getElementById("assignError");
+  if(!task){errEl.textContent="Task description required.";errEl.style.display="block";return;}
+  if(!assignerEmail.includes("@")){errEl.textContent="Valid assigner email required.";errEl.style.display="block";return;}
+  if(!ownerEmail.includes("@")){errEl.textContent="Valid owner email required.";errEl.style.display="block";return;}
+  if(!wd||wd<1){errEl.textContent="Enter working days (min 1).";errEl.style.display="block";return;}
+  errEl.style.display="none";
+  const dueDate=addWorkingDays(assignedDate,wd);
+  const t={id:nextId++,task,priority:currentPriority,assigner,assignerEmail,owner,ownerEmail,assignedDate,dueDate,status:"Pending",completedDateVal:"",files:[...pendingFiles],progress:[]};
+  tasks.push(t);
+  closeModal("assignModal");
+  renderTable();
+  const fileNote=t.files.length>0?"\nAttached: "+t.files.map(f=>f.name).join(", "):"";
+  await sendGmail(ownerEmail,owner,"New Task Assigned: "+task,"Hi "+owner+",\n\n"+assigner+" has assigned you a task:\n\nTask: "+task+"\nPriority: "+currentPriority+"\nDue: "+dueDate+fileNote+"\n\nPlease complete by the due date.\n\nRegards,\n"+settings.managerName);
+}
+
+// ── Complete ──────────────────────────────────────────────────────────────────
+function openComplete(id){
+  activeCompleteId=id;
+  const t=tasks.find(x=>x.id===id);
+  document.getElementById("c_taskName").textContent=t.task;
+  document.getElementById("c_date").value=today;
+  document.getElementById("c_holidayWarn").style.display="none";
+  openModal("completeModal");
+}
+function checkHoliday(inputId,warnId){
+  const v=document.getElementById(inputId).value;
+  document.getElementById(warnId).style.display=v&&isHoliday(v)?"block":"none";
+}
+async function confirmComplete(){
+  const date=document.getElementById("c_date").value;
+  const t=tasks.find(x=>x.id===activeCompleteId);
+  if(!t)return;
+  t.status="Completed";t.completedDateVal=date;
+  closeModal("completeModal");renderTable();
+  await sendGmail(t.assignerEmail,t.assigner,"Task Completed: "+t.task,"Hi "+t.assigner+",\n\n"+t.owner+" has completed:\n\nTask: "+t.task+"\nDue: "+t.dueDate+"\nCompleted: "+date+"\n\nRegards,\n"+settings.managerName);
+}
+
+// ── Remind ────────────────────────────────────────────────────────────────────
+async function sendReminder(id){
+  const t=tasks.find(x=>x.id===id);if(!t)return;
+  const diff=Math.abs(workingDaysBetween(today,t.dueDate));
+  await sendGmail(t.ownerEmail,t.owner,"Overdue Reminder: "+t.task,"Hi "+t.owner+",\n\nYour task is overdue by "+diff+" working day(s):\n\nTask: "+t.task+"\nDue: "+t.dueDate+"\n\nPlease complete ASAP.\n\nRegards,\n"+settings.managerName);
+}
+
+// ── Delete ────────────────────────────────────────────────────────────────────
+function deleteTask(id){if(confirm("Delete this task?")){tasks=tasks.filter(t=>t.id!==id);renderTable();}}
+
+// ── Progress ──────────────────────────────────────────────────────────────────
+function openProgress(id){
+  activeProgressId=id;
+  renderProgress();
+  document.getElementById("p_date").value=today;
+  document.getElementById("p_comment").value="";
+  document.getElementById("p_error").style.display="none";
+  openModal("progressModal");
+}
+function renderProgress(){
+  const t=tasks.find(x=>x.id===activeProgressId);if(!t)return;
+  const steps=(t.progress||[]).length;
+  const pct=t.status==="Completed"?100:Math.min(80,Math.round(steps/Math.max(steps+1,3)*80));
+  document.getElementById("p_taskName").textContent=t.task;
+  document.getElementById("p_pct").textContent=pct+"%";
+  document.getElementById("p_bar").style.width=pct+"%";
+  document.getElementById("p_bar").style.background=t.status==="Completed"?"#10b981":"#3b82f6";
+  document.getElementById("p_stepCount").textContent=steps+" update"+(steps!==1?"s":"")+" logged";
+  document.getElementById("p_status").textContent=t.status==="Completed"?"Completed on "+t.completedDateVal:"In Progress";
+  const addForm=document.getElementById("p_addForm");
+  addForm.style.display=t.status==="Completed"?"none":"block";
+
+  if(steps===0){
+    document.getElementById("p_timeline").innerHTML=`<div style="text-align:center;padding:20px;color:#94a3b8;background:#f8fafc;border-radius:10px;border:1px dashed #e2e8f0;margin-bottom:16px"><div style="font-size:28px;margin-bottom:6px">📋</div><p style="font-size:13px">No progress logged yet.</p></div>`;
+    return;
+  }
+  document.getElementById("p_timeline").innerHTML=`<div style="font-size:12px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.05em;margin-bottom:12px">Work Log</div><div style="position:relative">`+
+    `<div class="progress-line"></div>`+
+    t.progress.map((p,i)=>`
+      <div style="display:flex;gap:12px;margin-bottom:14px;position:relative">
+        <div class="progress-dot">${i+1}</div>
+        <div style="flex:1;background:#f8fafc;border-radius:10px;padding:10px 14px;border:1px solid #e2e8f0">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+            <span style="font-size:12px;font-weight:700;color:#1e40af">📅 ${p.date}</span>
+            <button onclick="deleteProgress(${p.id})" style="background:none;border:none;color:#fca5a5;cursor:pointer;font-size:13px">✕</button>
+          </div>
+          <p style="margin:0;font-size:13px;color:#374151;line-height:1.5">${p.comment}</p>
+        </div>
+      </div>`).join("")+`</div>`;
+}
+function addProgress(){
+  const date=document.getElementById("p_date").value;
+  const comment=document.getElementById("p_comment").value.trim();
+  const errEl=document.getElementById("p_error");
+  if(!comment){errEl.textContent="Please enter a comment.";errEl.style.display="block";return;}
+  errEl.style.display="none";
+  const t=tasks.find(x=>x.id===activeProgressId);if(!t)return;
+  t.progress.push({id:nextProgressId++,date,comment});
+  document.getElementById("p_comment").value="";
+  renderProgress();renderTable();
+}
+function deleteProgress(pid){
+  const t=tasks.find(x=>x.id===activeProgressId);if(!t)return;
+  t.progress=t.progress.filter(p=>p.id!==pid);
+  renderProgress();renderTable();
+}
+
+// ── Files ─────────────────────────────────────────────────────────────────────
+function openFiles(id){
+  const t=tasks.find(x=>x.id===id);if(!t)return;
+  document.getElementById("f_taskName").textContent=t.task;
+  document.getElementById("f_list").innerHTML=t.files.length===0?`<p style="color:#94a3b8">No files attached.</p>`:
+    t.files.map(f=>`<div style="display:flex;align-items:center;gap:12px;padding:10px 14px;background:#f8fafc;border-radius:8px;border:1px solid #e2e8f0;margin-bottom:8px">
+      <span style="font-size:22px">${f.type.startsWith("image/")?"🖼":f.type==="application/pdf"?"📄":"📎"}</span>
+      <div style="flex:1;min-width:0"><div style="font-weight:600;font-size:13px;color:#1e293b;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${f.name}</div><div style="font-size:11px;color:#94a3b8">${formatSize(f.size)}</div></div>
+      <a href="${f.url}" download="${f.name}" style="background:#eff6ff;color:#1e40af;border:1px solid #bfdbfe;border-radius:6px;padding:5px 10px;font-size:12px;font-weight:600;text-decoration:none">Download</a>
+    </div>`).join("");
+  openModal("filesModal");
+}
+
+// ── Settings ──────────────────────────────────────────────────────────────────
+function openSettings(){
+  document.getElementById("s_managerName").value=settings.managerName;
+  document.getElementById("s_managerEmail").value=settings.managerEmail;
+  renderMembersList();
+  openModal("settingsModal");
+}
+function switchTab(tab,btn){
+  document.querySelectorAll(".tab-btn").forEach(b=>b.classList.remove("active"));
+  btn.classList.add("active");
+  document.getElementById("tab_general").style.display=tab==="general"?"block":"none";
+  document.getElementById("tab_members").style.display=tab==="members"?"block":"none";
+}
+function renderMembersList(){
+  document.getElementById("membersList").innerHTML=members.map((m,i)=>`
+    <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:8px;margin-bottom:8px;align-items:center">
+      <input value="${m.name}" oninput="members[${i}].name=this.value" placeholder="Name" style="margin-bottom:0"/>
+      <input type="email" value="${m.email}" oninput="members[${i}].email=this.value" placeholder="Email" style="margin-bottom:0"/>
+      <button onclick="removeMember(${i})" style="background:#fee2e2;color:#b91c1c;border:1px solid #fca5a5;border-radius:6px;padding:8px 10px;cursor:pointer">✕</button>
+    </div>`).join("");
+}
+function addMemberRow(){members.push({name:"",email:""});renderMembersList();}
+function removeMember(i){members.splice(i,1);renderMembersList();}
+function saveSettings(){
+  settings.managerName=document.getElementById("s_managerName").value||"Manager";
+  settings.managerEmail=document.getElementById("s_managerEmail").value;
+  members=members.filter(m=>m.name.trim());
+  closeModal("settingsModal");
+  showToast("Settings saved","success");
+  renderTable();
+}
+
+// ── Export CSV ────────────────────────────────────────────────────────────────
+function exportCSV(){
+  const headers=["S.No","Task","Priority","Assigner","Assigner Email","Owner","Owner Email","Assigned Date","Due Date","Status","Completed Date","Progress Steps"];
+  const rows=tasks.map((t,i)=>[i+1,t.task,t.priority||"Medium",t.assigner,t.assignerEmail,t.owner,t.ownerEmail,t.assignedDate,t.dueDate,t.status,t.completedDateVal||"",(t.progress||[]).map(p=>p.date+": "+p.comment).join(" | ")]);
+  const csv=[headers,...rows].map(r=>r.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(",")).join("\n");
+  const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv"}));a.download="task-report.csv";a.click();
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+renderTable();
+</script>
+</body>
+</html>
